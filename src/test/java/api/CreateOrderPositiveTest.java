@@ -1,9 +1,8 @@
 package api;
 
-import io.qameta.allure.Allure;
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
-import org.json.JSONObject;
+import api.client.Order;
+import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,11 +11,11 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith(Parameterized.class)
-public class CreateOrderPositiveTest {
+public class CreateOrderPositiveTest extends BaseTest {
+    private Order client;
     private final String firstName;
     private final String lastName;
     private final String address;
@@ -46,37 +45,24 @@ public class CreateOrderPositiveTest {
                 {"Naruto", "Uchiha", "Konoha, 142 apt.", "4", "+78003553535", 5, "2020-06-06", "Saske, come back", Arrays.asList("BLACK", "GREY")},
                 {"Naruto", "Uchiha", "Konoha, 142 apt.", "4", "+78003553535", 5, "2020-06-06", "Saske, come back", Arrays.asList("BLACK")},
                 {"Naruto", "Uchiha", "Konoha, 142 apt.", "4", "+78003553535", 5, "2020-06-06", "Saske, come back", Arrays.asList()},
+                {"Naruto", "Uchiha", "Konoha, 142 apt.", "4", "+78003553535", 5, "2020-06-06", "Saske, come back", Arrays.asList("GREY")},
         };
     }
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        client = new Order();
     }
 
     @Test
-    public void positive() {
-        Allure.step("Успешное создание ордера");
-        JSONObject jo = new JSONObject();
-        jo.put("firstName", firstName);
-        jo.put("lastName", lastName);
-        jo.put("address", address);
-        jo.put("metroStation", metroStation);
-        jo.put("phone", phone);
-        jo.put("rentTime", rentTime);
-        jo.put("deliveryDate", deliveryDate);
-        jo.put("comment", comment);
-        jo.put("rentTime", rentTime);
-        jo.put("color", colors);
+    @Description("Successful creating an order")
+    public void successfulCreate() {
+        create();
+    }
 
-        given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .body(jo.toString())
-                .when()
-                .post("/api/v1/orders")
-                .then()
-                .log().all()
+    @Step("Create")
+    void create() {
+        client.create(firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment, colors)
                 .assertThat()
                 .body("track", notNullValue())
                 .statusCode(201);

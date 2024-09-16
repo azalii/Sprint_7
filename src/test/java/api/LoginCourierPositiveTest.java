@@ -1,59 +1,57 @@
 package api;
 
-import io.qameta.allure.Allure;
-import io.restassured.RestAssured;
-import org.json.JSONObject;
+import api.client.Courier;
+import io.qameta.allure.Description;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import io.qameta.allure.Step;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class LoginCourierPositiveTest {
-    private String courierId;
+public class LoginCourierPositiveTest extends BaseTest {
+    private Courier client;
     private final String login = "oioiooioioio";
     private final String password = "ggggggggg";
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        client = new Courier();
     }
 
     @Test
-    public void positiveLogin () {
-        Allure.step("Успешное создание курьера");
+    @Description("Successful courier login")
+    public void positive() {
+        create();
+        login();
+    }
 
-        JSONObject jo = new JSONObject();
-        jo.put("login", login);
-        jo.put("password", password);
+    @After
+    public void tearDown() {
+        String courierId = loginForDelete();
+        delete(courierId);
+    }
 
-         given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .and()
-                .body(jo.toString())
-                .when()
-                .post("/api/v1/courier")
-                .then()
-                .log().all()
+    @Step("Create")
+    void create() {
+        client.create(login, password)
                 .assertThat()
                 .body("ok", equalTo(true))
-                .and()
                 .statusCode(201);
+    }
 
-        Allure.step("Успешный логин курьера");
+    @Step("Login")
+    void login () {
+        client.login(login, password)
+                .assertThat()
+                .body("id", notNullValue())
+                .statusCode(200);
+    }
 
-        courierId = given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .and()
-                .body(jo.toString())
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .log().all()
+    @Step("Login for delete")
+    String loginForDelete() {
+        return client.login(login, password)
                 .assertThat()
                 .body("id", notNullValue())
                 .and()
@@ -61,15 +59,9 @@ public class LoginCourierPositiveTest {
                 .extract().path("id").toString();
     }
 
-    @After
-    public void tearDown() {
-        given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .and()
-                .when()
-                .delete("/api/v1/courier/" + courierId).then()
-                .log().all()
+    @Step("Delete")
+    void delete(String id) {
+        client.delete(id)
                 .assertThat()
                 .body("ok", equalTo(true))
                 .and()

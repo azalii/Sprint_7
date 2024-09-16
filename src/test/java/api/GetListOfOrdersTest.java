@@ -1,26 +1,31 @@
 package api;
 
-import io.restassured.RestAssured;
+import api.client.Order;
+import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
+
 import static org.hamcrest.Matchers.*;
 
-public class GetListOfOrdersTest {
+public class GetListOfOrdersTest extends BaseTest {
+    private Order client;
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        client = new Order();
     }
 
     @Test
-    public void test() {
-        given()
-                .header("Content-type", "application/json")
-                .when()
-                .get("/api/v1/orders").then()
-                .log().all()
+    @Description("Successful getting an order list")
+    public void getAllOrders() {
+        getAll();
+    }
+
+    @Step("Get all")
+    void getAll() {
+        client.getList()
                 .assertThat()
                 .body("orders", notNullValue())
                 .body("orders.size()", not(0))

@@ -1,103 +1,89 @@
 package api;
 
-import io.qameta.allure.Allure;
-import io.restassured.RestAssured;
-import org.json.JSONObject;
+import api.client.Courier;
+import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(Parameterized.class)
-public class LoginCourierNegativeTest {
-    private final String requestBody;
-    private final String login = "oioiooioioio";
-    private final String password = "ggggggggg";
+public class LoginCourierNegativeTest extends BaseTest {
+    private Courier client;
+    private final String login;
+    private final String password;
+    private final String originalLogin = "wwwwwwwweeeeeeee";
+    private final String originalPassword = "wwwwwwwweeeeeeee";
 
-    public LoginCourierNegativeTest(String requestBody) {
-        this.requestBody = requestBody;
+    public LoginCourierNegativeTest(String login, String password) {
+        this.login = login;
+        this.password = password;
     }
 
     @Parameterized.Parameters
-    public static Object[][] getParameters() {
+    public static Object[][] getCredentials() {
         return new Object[][]{
-                {"{\"login\":\"123\"}"},
-                {"{\"password\":\"123\"}"},
-                {"{}"},
+                {"123", null},
+                {null, "123"},
+                {null, null},
         };
     }
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        client = new Courier();
     }
 
     @Test
-    public void test () {
-        Allure.step("Успешное создание курьера");
+    @Description("Negative courier login")
+    public void withoutRequiredFields() {
+        create();
+        login();
+    }
 
-        JSONObject jo = new JSONObject();
-        jo.put("login", login);
-        jo.put("password", password);
+    @After
+    public void tearDown() {
+        String courierId = loginForDelete();
+        delete(courierId);
+    }
 
-         given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .body(jo.toString())
-                .when()
-                .post("/api/v1/courier")
-                .then()
-                .log().all()
+    @Step("Create")
+    void create() {
+        client.create(originalLogin, originalPassword)
                 .assertThat()
                 .body("ok", equalTo(true))
                 .statusCode(201);
+    }
 
-        Allure.step("Попытка логина без обязательных полей");
-
-        given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .log().all()
+    @Step("Login")
+    void login() {
+        client.login(login, password)
                 .assertThat()
                 .body("message", equalTo("Недостаточно данных для входа"))
                 .statusCode(400);
     }
 
-    @After
-    public void tearDown() {
-        JSONObject jo = new JSONObject();
-        jo.put("login", login);
-        jo.put("password", password);
-
-        String courierId = given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .body(jo.toString())
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .log().all()
+    @Step("Login for delete")
+    String loginForDelete() {
+        return client.login(originalLogin, originalPassword)
                 .assertThat()
                 .body("id", notNullValue())
+                .and()
                 .statusCode(200)
                 .extract().path("id").toString();
+    }
 
-        given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .when()
-                .delete("/api/v1/courier/" + courierId).then()
-                .log().all()
+    @Step("Delete")
+    void delete(String id) {
+        client.delete(id)
                 .assertThat()
                 .body("ok", equalTo(true))
+                .and()
                 .statusCode(200);
     }
 }

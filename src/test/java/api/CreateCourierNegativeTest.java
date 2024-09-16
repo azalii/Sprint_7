@@ -1,52 +1,49 @@
 package api;
 
-import io.qameta.allure.Allure;
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
+import api.client.Courier;
+import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(Parameterized.class)
-public class CreateCourierNegativeTest {
-    private final String requestBody;
+public class CreateCourierNegativeTest extends BaseTest {
+    private Courier client;
+    private final String login;
+    private final String password;
 
-    public CreateCourierNegativeTest(String requestBody) {
-        this.requestBody = requestBody;
+    public CreateCourierNegativeTest(String login, String password) {
+        this.login = login;
+        this.password = password;
     }
 
     @Parameterized.Parameters
     public static Object[][] getCredentials() {
         return new Object[][]{
-                {"{\"login\":\"123\"}"},
-                {"{\"password\":\"123\"}"},
-                {"{}"},
+                {"123", null},
+                {null, "123"},
+                {null, null},
         };
     }
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        client = new Courier();
     }
 
     @Test
+    @Description("Attempt to create a courier without required fields")
     public void withoutRequiredFields() {
-        Allure.step("Создание курьера без обязательных полей");
+        create();
+    }
 
-        Response response = given()
-                .log().all()
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post("/api/v1/courier");
-
-        response
-                .then()
-                .log().all()
+    @Step("Create")
+    void create() {
+        client.create(login, password)
                 .assertThat()
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"))
                 .statusCode(400);
